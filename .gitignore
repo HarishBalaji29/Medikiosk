@@ -1,0 +1,36 @@
+# ──── Environment Variables (SENSITIVE — never commit) ────
+.env
+.env.*
+!.env.example
+
+# ──── Python ────
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+dist/
+build/
+*.egg
+.venv/
+venv/
+env/
+
+# ──── Node / Frontend ────
+node_modules/
+frontend/dist/
+frontend/build/
+.vite/
+*.log
+npm-debug.log*
+
+# ──── IDE & OS ────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+Thumbs.db
+.DS_Store
+
+# ──── Gemini / Agent ────
+.gemini/
