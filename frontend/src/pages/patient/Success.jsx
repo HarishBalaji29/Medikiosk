@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import Card from '../../components/ui/Card'
@@ -5,14 +6,34 @@ import Button from '../../components/ui/Button'
 import AnimatedPage from '../../components/shared/AnimatedPage'
 import { CheckCircle2, Download, Home, Pill, Clock, Hash, Calendar } from 'lucide-react'
 
-const receiptItems = [
-    { name: 'Amoxicillin 500mg', qty: 14 },
-    { name: 'Paracetamol 650mg', qty: 10 },
-    { name: 'Omeprazole 20mg', qty: 14 },
-]
-
 export default function Success() {
     const navigate = useNavigate()
+
+    // Read medicines from OCR result
+    const receiptItems = useMemo(() => {
+        const ocrData = JSON.parse(localStorage.getItem('medikiosk_ocr_result') || 'null')
+        if (ocrData?.medicines?.length) {
+            return ocrData.medicines
+                .filter(m => m.available !== false)
+                .map(m => ({
+                    name: `${m.name} ${m.dosage || ''}`.trim(),
+                    qty: 1,
+                }))
+        }
+        return []
+    }, [])
+
+    const now = new Date()
+    const dateStr = now.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+    const timeStr = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })
+    const txnId = `TXN-${Date.now().toString().slice(-5)}`
+
+    const handleGoHome = () => {
+        // Clear OCR data on completion
+        localStorage.removeItem('medikiosk_ocr_result')
+        localStorage.removeItem('medikiosk_prescription_image')
+        navigate('/patient/dashboard')
+    }
 
     return (
         <AnimatedPage>
@@ -72,7 +93,7 @@ export default function Success() {
                             <div className="flex items-center justify-between">
                                 <h3 className="text-lg font-semibold text-white">Dispensing Receipt</h3>
                                 <span className="text-xs text-dark-400 bg-dark-800 px-3 py-1 rounded-full">
-                                    #RX-2026-1042
+                                    #{txnId}
                                 </span>
                             </div>
                         </div>
@@ -83,21 +104,21 @@ export default function Success() {
                                 <Calendar className="w-4 h-4 text-dark-500" />
                                 <div>
                                     <p className="text-xs text-dark-400">Date</p>
-                                    <p className="text-sm font-medium text-white">25 Feb 2026</p>
+                                    <p className="text-sm font-medium text-white">{dateStr}</p>
                                 </div>
                             </div>
                             <div className="flex items-center gap-2">
                                 <Clock className="w-4 h-4 text-dark-500" />
                                 <div>
                                     <p className="text-xs text-dark-400">Time</p>
-                                    <p className="text-sm font-medium text-white">11:42 PM</p>
+                                    <p className="text-sm font-medium text-white">{timeStr}</p>
                                 </div>
                             </div>
                             <div className="flex items-center gap-2">
                                 <Hash className="w-4 h-4 text-dark-500" />
                                 <div>
                                     <p className="text-xs text-dark-400">Transaction ID</p>
-                                    <p className="text-sm font-medium text-white">TXN-87432</p>
+                                    <p className="text-sm font-medium text-white">{txnId}</p>
                                 </div>
                             </div>
                             <div className="flex items-center gap-2">
@@ -111,15 +132,21 @@ export default function Success() {
 
                         {/* Items */}
                         <div className="space-y-2 mb-6">
-                            {receiptItems.map((item, i) => (
-                                <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-dark-800/30">
-                                    <div className="flex items-center gap-2">
-                                        <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                                        <span className="text-sm text-white">{item.name}</span>
+                            {receiptItems.length > 0 ? (
+                                receiptItems.map((item, i) => (
+                                    <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-dark-800/30">
+                                        <div className="flex items-center gap-2">
+                                            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                                            <span className="text-sm text-white">{item.name}</span>
+                                        </div>
+                                        <span className="text-sm text-dark-400">x{item.qty}</span>
                                     </div>
-                                    <span className="text-sm text-dark-400">x{item.qty}</span>
+                                ))
+                            ) : (
+                                <div className="text-center py-4 text-sm text-dark-400">
+                                    No items dispensed
                                 </div>
-                            ))}
+                            )}
                         </div>
 
                         {/* Actions */}
@@ -127,7 +154,7 @@ export default function Success() {
                             <Button variant="secondary" icon={Download} className="flex-1">
                                 Download Receipt
                             </Button>
-                            <Button variant="emerald" icon={Home} onClick={() => navigate('/patient/dashboard')} className="flex-1">
+                            <Button variant="emerald" icon={Home} onClick={handleGoHome} className="flex-1">
                                 Return to Dashboard
                             </Button>
                         </div>

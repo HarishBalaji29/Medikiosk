@@ -1,19 +1,26 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import Card from '../../components/ui/Card'
 import AnimatedPage from '../../components/shared/AnimatedPage'
 import { Pill, CheckCircle2, XCircle, Package, Loader2 } from 'lucide-react'
 
-const dispensingItems = [
-    { name: 'Amoxicillin 500mg', qty: 14, available: true },
-    { name: 'Paracetamol 650mg', qty: 10, available: true },
-    { name: 'Omeprazole 20mg', qty: 14, available: true },
-    { name: 'Cetirizine Syrup', qty: 1, available: false },
-]
-
 export default function Dispensing() {
     const navigate = useNavigate()
+
+    // Read medicines from OCR result
+    const dispensingItems = useMemo(() => {
+        const ocrData = JSON.parse(localStorage.getItem('medikiosk_ocr_result') || 'null')
+        if (ocrData?.medicines?.length) {
+            return ocrData.medicines.map(m => ({
+                name: `${m.name} ${m.dosage || ''}`.trim(),
+                qty: 1,
+                available: m.available !== false,
+            }))
+        }
+        return [{ name: 'No medicines detected', qty: 0, available: false }]
+    }, [])
+
     const [currentItem, setCurrentItem] = useState(0)
     const [statuses, setStatuses] = useState(dispensingItems.map(() => 'waiting'))
 
@@ -50,13 +57,8 @@ export default function Dispensing() {
                 {/* Vending Machine Animation */}
                 <Card variant="accent" span={2} hover={false} className="flex items-center justify-center min-h-[350px]">
                     <div className="text-center">
-                        {/* Machine Body */}
-                        <motion.div
-                            className="relative w-48 h-64 mx-auto mb-6"
-                        >
-                            {/* Machine frame */}
+                        <motion.div className="relative w-48 h-64 mx-auto mb-6">
                             <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-dark-700 to-dark-800 border-2 border-dark-600 overflow-hidden">
-                                {/* Screen */}
                                 <div className="mx-4 mt-4 h-20 rounded-lg bg-dark-900 border border-dark-600 flex items-center justify-center">
                                     <motion.div
                                         animate={{ opacity: [0.5, 1, 0.5] }}
@@ -66,8 +68,6 @@ export default function Dispensing() {
                                         DISPENSING...
                                     </motion.div>
                                 </div>
-
-                                {/* Slots */}
                                 <div className="grid grid-cols-3 gap-1 mx-4 mt-3">
                                     {[...Array(9)].map((_, i) => (
                                         <motion.div
@@ -77,8 +77,6 @@ export default function Dispensing() {
                                         />
                                     ))}
                                 </div>
-
-                                {/* Dispense Slot */}
                                 <motion.div
                                     className="mx-4 mt-3 h-14 rounded-lg bg-dark-950 border-2 border-dark-600 flex items-center justify-center"
                                     animate={statuses[currentItem] === 'dispensing' ? {
@@ -100,17 +98,12 @@ export default function Dispensing() {
                                     </AnimatePresence>
                                 </motion.div>
                             </div>
-
-                            {/* Glow */}
                             <motion.div
                                 className="absolute -inset-4 rounded-3xl"
-                                animate={{
-                                    boxShadow: ['0 0 20px rgba(59,130,246,0.1)', '0 0 40px rgba(59,130,246,0.2)', '0 0 20px rgba(59,130,246,0.1)'],
-                                }}
+                                animate={{ boxShadow: ['0 0 20px rgba(59,130,246,0.1)', '0 0 40px rgba(59,130,246,0.2)', '0 0 20px rgba(59,130,246,0.1)'] }}
                                 transition={{ duration: 2, repeat: Infinity }}
                             />
                         </motion.div>
-
                         <p className="text-dark-400 text-sm">
                             Processing {currentItem + 1} of {dispensingItems.length}
                         </p>
@@ -129,13 +122,10 @@ export default function Dispensing() {
                         >
                             <Card variant="default" hover={false} className="!p-4">
                                 <div className="flex items-center gap-3">
-                                    <div className={`
-                    w-8 h-8 rounded-lg flex items-center justify-center
-                    ${statuses[i] === 'done' ? 'bg-emerald-500/20' :
+                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center
+                                        ${statuses[i] === 'done' ? 'bg-emerald-500/20' :
                                             statuses[i] === 'unavailable' ? 'bg-rose-500/20' :
-                                                statuses[i] === 'dispensing' ? 'bg-primary-500/20' :
-                                                    'bg-dark-800'}
-                  `}>
+                                                statuses[i] === 'dispensing' ? 'bg-primary-500/20' : 'bg-dark-800'}`}>
                                         {statuses[i] === 'done' ? <CheckCircle2 className="w-4 h-4 text-emerald-400" /> :
                                             statuses[i] === 'unavailable' ? <XCircle className="w-4 h-4 text-rose-400" /> :
                                                 statuses[i] === 'dispensing' ? <Loader2 className="w-4 h-4 text-primary-400 animate-spin" /> :

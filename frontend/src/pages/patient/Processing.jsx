@@ -4,25 +4,13 @@ import { motion } from 'framer-motion'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import AnimatedPage from '../../components/shared/AnimatedPage'
-import { Search, Bot, CheckCircle2, Brain, ArrowRight, FileText, Gauge } from 'lucide-react'
+import { Search, Bot, CheckCircle2, Brain, ArrowRight, FileText, Gauge, ImageIcon } from 'lucide-react'
 
 const steps = [
-    { icon: Search, label: 'Reading Prescription', desc: 'Analyzing the uploaded image...', emoji: '🔍', duration: 2000 },
-    { icon: Bot, label: 'Extracting Medicine Details', desc: 'Using AI to identify medicines...', emoji: '🤖', duration: 2500 },
-    { icon: CheckCircle2, label: 'Validating Dosage', desc: 'Cross-referencing with database...', emoji: '✅', duration: 1500 },
+    { icon: Search, label: 'Reading Prescription', desc: 'Analyzing the uploaded image...', emoji: '🔍', duration: 1200 },
+    { icon: Bot, label: 'Extracting Medicine Details', desc: 'Using AI to identify medicines...', emoji: '🤖', duration: 1500 },
+    { icon: CheckCircle2, label: 'Validating Results', desc: 'Cross-referencing extracted data...', emoji: '✅', duration: 1000 },
 ]
-
-const extractedText = `Dr. Priya Patel - MBBS, MD (Gen. Medicine)
-Reg. No: MCI-45821
-
-Patient: Rahul Sharma
-Date: 25/02/2026
-
-Rx:
-1. Tab. Amoxicillin 500mg — 1-0-1 x 7 days
-2. Tab. Paracetamol 650mg — SOS (for fever)
-3. Cap. Omeprazole 20mg — 1-0-0 x 14 days
-4. Syp. Cetirizine 5mg/5ml — 10ml HS x 5 days`
 
 export default function Processing() {
     const navigate = useNavigate()
@@ -31,7 +19,20 @@ export default function Processing() {
     const [complete, setComplete] = useState(false)
     const [showText, setShowText] = useState(false)
 
+    // Read real OCR result from localStorage
+    const ocrData = JSON.parse(localStorage.getItem('medikiosk_ocr_result') || 'null')
+    const prescriptionImage = localStorage.getItem('medikiosk_prescription_image')
+    const extractedText = ocrData?.extracted_text || 'No text extracted. Please go back and re-upload.'
+    const confidence = ocrData?.confidence || 0
+    const medicineCount = ocrData?.medicines?.length || 0
+
     useEffect(() => {
+        // If no OCR data, redirect back to upload
+        if (!ocrData) {
+            navigate('/patient/upload')
+            return
+        }
+
         let timeout
         const runStep = (step) => {
             if (step >= steps.length) {
@@ -53,7 +54,7 @@ export default function Processing() {
         }
         const totalDuration = steps.reduce((a, s) => a + s.duration, 0)
         const elapsed = steps.slice(0, currentStep).reduce((a, s) => a + s.duration, 0)
-        const stepProgress = 30; // rough within-step progress
+        const stepProgress = 30
         setProgress(Math.min(95, ((elapsed + stepProgress) / totalDuration) * 100))
     }, [currentStep, complete])
 
@@ -138,6 +139,21 @@ export default function Processing() {
 
                 {/* Right Panel */}
                 <div className="space-y-4">
+                    {/* Uploaded Image Thumbnail */}
+                    {prescriptionImage && (
+                        <Card variant="default" hover={false}>
+                            <div className="flex items-center gap-3 mb-3">
+                                <ImageIcon className="w-5 h-5 text-primary-400" />
+                                <h3 className="text-sm font-semibold text-white">Uploaded Image</h3>
+                            </div>
+                            <img
+                                src={prescriptionImage}
+                                alt="Uploaded prescription"
+                                className="w-full rounded-lg border border-dark-700 max-h-32 object-cover"
+                            />
+                        </Card>
+                    )}
+
                     {/* Confidence */}
                     <Card variant="glass" hover={false}>
                         <div className="flex items-center gap-3 mb-3">
@@ -150,9 +166,22 @@ export default function Processing() {
                                 animate={{ opacity: complete ? 1 : [0.5, 1, 0.5] }}
                                 transition={{ duration: 1.5, repeat: complete ? 0 : Infinity }}
                             >
-                                {complete ? '94.7%' : '---'}
+                                {complete ? `${confidence}%` : '---'}
                             </motion.span>
-                            <p className="text-xs text-dark-400 mt-2">{complete ? 'High confidence extraction' : 'Calculating...'}</p>
+                            <p className="text-xs text-dark-400 mt-2">
+                                {complete
+                                    ? confidence > 80
+                                        ? 'High confidence extraction'
+                                        : confidence > 50
+                                            ? 'Medium confidence — please verify'
+                                            : 'Low confidence — manual review recommended'
+                                    : 'Calculating...'}
+                            </p>
+                            {complete && medicineCount > 0 && (
+                                <p className="text-xs text-emerald-400 mt-2">
+                                    {medicineCount} medicine{medicineCount !== 1 ? 's' : ''} detected
+                                </p>
+                            )}
                         </div>
                     </Card>
 

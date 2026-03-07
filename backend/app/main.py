@@ -1,8 +1,10 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from app.config import get_settings
 from app.database import engine, Base
 from app.routers import auth, patient, doctor, admin
+import traceback
 
 settings = get_settings()
 
@@ -17,12 +19,16 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-# CORS
+# CORS — explicit origins for development
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.FRONTEND_URL, "http://localhost:5173", "http://localhost:3000"],
+    allow_origins=[
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "http://127.0.0.1:5173",
+    ],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
 )
 
@@ -46,3 +52,16 @@ def root():
 @app.get("/health")
 def health():
     return {"status": "healthy"}
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    tb = traceback.format_exc()
+    print(f"\n{'='*60}")
+    print(f"[ERROR] Unhandled exception on {request.method} {request.url}")
+    print(tb)
+    print(f"{'='*60}\n")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": str(exc), "traceback": tb},
+    )

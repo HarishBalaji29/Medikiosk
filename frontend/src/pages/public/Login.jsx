@@ -5,114 +5,272 @@ import { useAuth } from '../../hooks/useAuth'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 import {
-    Pill, Phone, CreditCard, Stethoscope, Shield,
-    AlertTriangle, ArrowRight, Mail, Lock, Hash,
-    Eye, EyeOff, ChevronLeft
+    Pill, Phone, Stethoscope, Shield, User,
+    ArrowRight, Mail, Lock, Hash,
+    Eye, EyeOff, ChevronLeft, AlertCircle, CheckCircle2
 } from 'lucide-react'
 
 const loginMethods = [
-    { id: 'mobile', icon: Phone, label: 'Mobile OTP', desc: 'Login with your phone number', color: 'from-primary-500 to-blue-600', role: 'patient' },
-    { id: 'patient-id', icon: CreditCard, label: 'Patient ID', desc: 'Use your patient ID card', color: 'from-emerald-500 to-green-600', role: 'patient' },
-    { id: 'doctor', icon: Stethoscope, label: 'Doctor Login', desc: 'Medical professional access', color: 'from-purple-500 to-violet-600', role: 'doctor' },
+    { id: 'patient', icon: Phone, label: 'Patient Login', desc: 'Login with your mobile number via OTP', color: 'from-primary-500 to-blue-600', role: 'patient' },
+    { id: 'doctor', icon: Stethoscope, label: 'Doctor Login', desc: 'Medical professional access', color: 'from-emerald-500 to-green-600', role: 'doctor' },
     { id: 'admin', icon: Shield, label: 'Admin Login', desc: 'System administration', color: 'from-amber-500 to-orange-600', role: 'admin' },
 ]
 
 export default function Login() {
     const navigate = useNavigate()
-    const { demoLogin } = useAuth()
+    const { login, sendOtp, verifyOtp, register } = useAuth()
     const [selectedMethod, setSelectedMethod] = useState(null)
     const [showPassword, setShowPassword] = useState(false)
     const [otpSent, setOtpSent] = useState(false)
     const [loading, setLoading] = useState(false)
+    const [error, setError] = useState('')
+    const [success, setSuccess] = useState('')
+    const [isRegister, setIsRegister] = useState(false)
 
     // Form states
     const [phone, setPhone] = useState('')
     const [otp, setOtp] = useState('')
-    const [patientId, setPatientId] = useState('')
+    const [name, setName] = useState('')
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
+    const [specialization, setSpecialization] = useState('')
 
-    const handleLogin = async (role) => {
+    const resetForm = () => {
+        setOtpSent(false)
+        setError('')
+        setSuccess('')
+        setPhone('')
+        setOtp('')
+        setName('')
+        setEmail('')
+        setPassword('')
+        setSpecialization('')
+        setIsRegister(false)
+    }
+
+    // ─── Patient: Send OTP via Twilio ───
+    const handleSendOtp = async () => {
+        if (!phone || phone.length < 10) {
+            setError('Please enter a valid phone number with country code (e.g. +919345789116)')
+            return
+        }
         setLoading(true)
-        // Simulate API call
-        await new Promise(r => setTimeout(r, 800))
-        demoLogin(role)
-        setLoading(false)
-        navigate(`/${role}/dashboard`)
+        setError('')
+        try {
+            const phoneNum = phone.startsWith('+') ? phone : `+91${phone}`
+            const result = await sendOtp(phoneNum)
+            setOtpSent(true)
+            if (result.mode === 'simulated' && result.demo_otp) {
+                setSuccess(`OTP sent! (Test mode — OTP: ${result.demo_otp})`)
+            } else {
+                setSuccess(`OTP sent to ${phoneNum} via SMS`)
+            }
+        } catch (err) {
+            setError(err.response?.data?.detail || 'Failed to send OTP. Please try again.')
+        } finally {
+            setLoading(false)
+        }
     }
 
-    const handleSendOtp = () => {
-        setOtpSent(true)
+    // ─── Patient: Verify OTP ───
+    const handleVerifyOtp = async () => {
+        if (!otp || otp.length !== 6) {
+            setError('Please enter the 6-digit OTP')
+            return
+        }
+        setLoading(true)
+        setError('')
+        try {
+            const phoneNum = phone.startsWith('+') ? phone : `+91${phone}`
+            const userData = await verifyOtp(phoneNum, otp)
+            setSuccess('Login successful!')
+            setTimeout(() => navigate(`/${userData.role}/dashboard`), 500)
+        } catch (err) {
+            const detail = err.response?.data?.detail || 'Invalid or expired OTP'
+            setError(detail)
+        } finally {
+            setLoading(false)
+        }
     }
 
-    const handleEmergency = () => {
-        demoLogin('patient')
-        navigate('/patient/upload')
+    // ─── Doctor/Admin: Email+Password Login ───
+    const handleEmailLogin = async (role) => {
+        if (!email || !password) {
+            setError('Please enter both email and password')
+            return
+        }
+        setLoading(true)
+        setError('')
+        try {
+            const userData = await login({ email, password })
+            if (userData.role !== role) {
+                setError(`This account is registered as "${userData.role}", not "${role}"`)
+                setLoading(false)
+                return
+            }
+            setSuccess('Login successful!')
+            setTimeout(() => navigate(`/${userData.role}/dashboard`), 500)
+        } catch (err) {
+            const detail = err.response?.data?.detail || 'Invalid email or password'
+            setError(detail)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    // ─── Doctor/Admin: Register ───
+    const handleRegister = async (role) => {
+        if (!name || !email || !password) {
+            setError('Please fill in all required fields')
+            return
+        }
+        setLoading(true)
+        setError('')
+        try {
+            const userData = await register({
+                name,
+                email,
+                password,
+                phone: phone || undefined,
+                role,
+                specialization: role === 'doctor' ? specialization : undefined,
+            })
+            setSuccess('Account created successfully!')
+            setTimeout(() => navigate(`/${userData.role}/dashboard`), 500)
+        } catch (err) {
+            const detail = err.response?.data?.detail || 'Registration failed'
+            setError(detail)
+        } finally {
+            setLoading(false)
+        }
     }
 
     const renderForm = () => {
         switch (selectedMethod) {
-            case 'mobile':
+            case 'patient':
                 return (
                     <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
-                        <h3 className="text-lg font-semibold text-white mb-4">📱 Mobile OTP Login</h3>
+                        <h3 className="text-lg font-semibold text-white mb-4">📱 Patient OTP Login</h3>
+
                         {!otpSent ? (
                             <>
-                                <Input label="Mobile Number" icon={Phone} placeholder="+91 98765 43210" value={phone} onChange={e => setPhone(e.target.value)} />
-                                <Button onClick={handleSendOtp} className="w-full" size="lg" icon={ArrowRight}>Send OTP</Button>
+                                <Input
+                                    label="Mobile Number"
+                                    icon={Phone}
+                                    placeholder="+91XXXXXXXXXX"
+                                    value={phone}
+                                    onChange={e => { setPhone(e.target.value); setError('') }}
+                                />
+                                <p className="text-xs text-dark-400">Include country code (e.g. +91 for India)</p>
+                                <Button onClick={handleSendOtp} loading={loading} className="w-full" size="lg" icon={ArrowRight}>
+                                    Send OTP
+                                </Button>
                             </>
                         ) : (
                             <>
-                                <p className="text-sm text-dark-400">OTP sent to <span className="text-primary-400">{phone || '+91 98765 43210'}</span></p>
-                                <Input label="Enter OTP" icon={Hash} placeholder="6-digit code" maxLength={6} value={otp} onChange={e => setOtp(e.target.value)} />
-                                <Button onClick={() => handleLogin('patient')} loading={loading} className="w-full" size="lg" icon={ArrowRight}>Verify & Login</Button>
-                                <button onClick={() => setOtpSent(false)} className="text-sm text-primary-400 hover:underline">Resend OTP</button>
+                                <p className="text-sm text-dark-400">
+                                    OTP sent to <span className="text-primary-400">{phone}</span>
+                                </p>
+                                <Input
+                                    label="Enter OTP"
+                                    icon={Hash}
+                                    placeholder="6-digit code"
+                                    maxLength={6}
+                                    value={otp}
+                                    onChange={e => { setOtp(e.target.value); setError('') }}
+                                />
+                                <Button onClick={handleVerifyOtp} loading={loading} className="w-full" size="lg" icon={ArrowRight}>
+                                    Verify & Login
+                                </Button>
+                                <button onClick={() => { setOtpSent(false); setError(''); setSuccess('') }} className="text-sm text-primary-400 hover:underline">
+                                    Change number / Resend OTP
+                                </button>
                             </>
                         )}
                     </motion.div>
                 )
-            case 'patient-id':
-                return (
-                    <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
-                        <h3 className="text-lg font-semibold text-white mb-4">🏥 Patient ID Login</h3>
-                        <Input label="Patient ID" icon={CreditCard} placeholder="PAT-2026-XXXX" value={patientId} onChange={e => setPatientId(e.target.value)} />
-                        <div className="relative">
-                            <Input label="Password" icon={Lock} type={showPassword ? 'text' : 'password'} placeholder="Enter password" value={password} onChange={e => setPassword(e.target.value)} />
-                            <button onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-9 text-dark-500 hover:text-dark-300">
-                                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                            </button>
-                        </div>
-                        <Button onClick={() => handleLogin('patient')} loading={loading} className="w-full" size="lg" icon={ArrowRight}>Login</Button>
-                    </motion.div>
-                )
+
             case 'doctor':
-                return (
-                    <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
-                        <h3 className="text-lg font-semibold text-white mb-4">👨‍⚕️ Doctor Login</h3>
-                        <Input label="Email" icon={Mail} type="email" placeholder="doctor@hospital.com" value={email} onChange={e => setEmail(e.target.value)} />
-                        <div className="relative">
-                            <Input label="Password" icon={Lock} type={showPassword ? 'text' : 'password'} placeholder="Enter password" value={password} onChange={e => setPassword(e.target.value)} />
-                            <button onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-9 text-dark-500 hover:text-dark-300">
-                                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                            </button>
-                        </div>
-                        <Button onClick={() => handleLogin('doctor')} loading={loading} className="w-full" size="lg" variant="emerald" icon={ArrowRight}>Login as Doctor</Button>
-                    </motion.div>
-                )
             case 'admin':
+                const role = selectedMethod
+                const roleLabel = role === 'doctor' ? '👨‍⚕️ Doctor' : '🔑 Admin'
                 return (
                     <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
-                        <h3 className="text-lg font-semibold text-white mb-4">🔑 Admin Login</h3>
-                        <Input label="Admin Email" icon={Mail} type="email" placeholder="admin@medikiosk.com" value={email} onChange={e => setEmail(e.target.value)} />
+                        <h3 className="text-lg font-semibold text-white mb-2">{roleLabel} {isRegister ? 'Register' : 'Login'}</h3>
+
+                        {isRegister && (
+                            <Input
+                                label="Full Name"
+                                icon={User}
+                                placeholder={role === 'doctor' ? 'Dr. Full Name' : 'Admin Name'}
+                                value={name}
+                                onChange={e => { setName(e.target.value); setError('') }}
+                            />
+                        )}
+
+                        <Input
+                            label="Email"
+                            icon={Mail}
+                            type="email"
+                            placeholder={role === 'doctor' ? 'doctor@hospital.com' : 'admin@medikiosk.com'}
+                            value={email}
+                            onChange={e => { setEmail(e.target.value); setError('') }}
+                        />
+
                         <div className="relative">
-                            <Input label="Password" icon={Lock} type={showPassword ? 'text' : 'password'} placeholder="Enter password" value={password} onChange={e => setPassword(e.target.value)} />
+                            <Input
+                                label="Password"
+                                icon={Lock}
+                                type={showPassword ? 'text' : 'password'}
+                                placeholder="Enter password"
+                                value={password}
+                                onChange={e => { setPassword(e.target.value); setError('') }}
+                            />
                             <button onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-9 text-dark-500 hover:text-dark-300">
                                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                             </button>
                         </div>
-                        <Button onClick={() => handleLogin('admin')} loading={loading} size="lg" className="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-medium py-3 rounded-xl transition-all" icon={ArrowRight}>Login as Admin</Button>
+
+                        {isRegister && role === 'doctor' && (
+                            <Input
+                                label="Specialization"
+                                icon={Stethoscope}
+                                placeholder="e.g. General Medicine"
+                                value={specialization}
+                                onChange={e => setSpecialization(e.target.value)}
+                            />
+                        )}
+
+                        {isRegister && (
+                            <Input
+                                label="Phone (optional)"
+                                icon={Phone}
+                                placeholder="+91XXXXXXXXXX"
+                                value={phone}
+                                onChange={e => setPhone(e.target.value)}
+                            />
+                        )}
+
+                        <Button
+                            onClick={() => isRegister ? handleRegister(role) : handleEmailLogin(role)}
+                            loading={loading}
+                            className="w-full"
+                            size="lg"
+                            variant={role === 'doctor' ? 'emerald' : 'default'}
+                            icon={ArrowRight}
+                        >
+                            {isRegister ? `Create ${role} Account` : `Login as ${role}`}
+                        </Button>
+
+                        <button
+                            onClick={() => { setIsRegister(!isRegister); setError('') }}
+                            className="text-sm text-primary-400 hover:underline block text-center w-full"
+                        >
+                            {isRegister ? 'Already have an account? Login' : "Don't have an account? Register"}
+                        </button>
                     </motion.div>
                 )
+
             default:
                 return null
         }
@@ -127,11 +285,7 @@ export default function Login() {
 
             <div className="relative z-10 w-full max-w-5xl">
                 {/* Header */}
-                <motion.div
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="text-center mb-8"
-                >
+                <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-8">
                     <div className="flex items-center justify-center gap-3 mb-4">
                         <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center animate-glow-pulse">
                             <Pill className="w-6 h-6 text-white" />
@@ -147,7 +301,7 @@ export default function Login() {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Login Method Cards */}
                     <div className="space-y-4">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                             {loginMethods.map((method, i) => (
                                 <motion.button
                                     key={method.id}
@@ -156,14 +310,13 @@ export default function Login() {
                                     transition={{ delay: 0.1 + i * 0.1 }}
                                     whileHover={{ scale: 1.02, y: -2 }}
                                     whileTap={{ scale: 0.98 }}
-                                    onClick={() => { setSelectedMethod(method.id); setOtpSent(false) }}
+                                    onClick={() => { setSelectedMethod(method.id); resetForm() }}
                                     className={`
-                    relative p-5 rounded-2xl border text-left transition-all duration-300
-                    ${selectedMethod === method.id
+                                        relative p-5 rounded-2xl border text-left transition-all duration-300
+                                        ${selectedMethod === method.id
                                             ? 'border-primary-500/50 bg-primary-500/5 shadow-lg shadow-primary-500/10'
-                                            : 'border-dark-700/50 bg-dark-900/60 hover:border-dark-600'
-                                        }
-                  `}
+                                            : 'border-dark-700/50 bg-dark-900/60 hover:border-dark-600'}
+                                    `}
                                 >
                                     <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${method.color} flex items-center justify-center mb-3`}>
                                         <method.icon className="w-5 h-5 text-white" />
@@ -176,26 +329,6 @@ export default function Login() {
                                 </motion.button>
                             ))}
                         </div>
-
-                        {/* Emergency Button */}
-                        <motion.button
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ delay: 0.6 }}
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            onClick={handleEmergency}
-                            className="w-full p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 hover:border-rose-500/50 hover:bg-rose-500/15 transition-all flex items-center gap-3 group"
-                        >
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-rose-500 to-red-600 flex items-center justify-center">
-                                <AlertTriangle className="w-5 h-5 text-white" />
-                            </div>
-                            <div className="text-left">
-                                <h3 className="text-sm font-semibold text-rose-400">Emergency Access</h3>
-                                <p className="text-xs text-dark-400">Skip login for urgent dispensing</p>
-                            </div>
-                            <ArrowRight className="w-5 h-5 text-rose-400 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
-                        </motion.button>
                     </div>
 
                     {/* Login Form Panel */}
@@ -203,13 +336,39 @@ export default function Login() {
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: 0.3 }}
-                        className="bg-dark-900/60 border border-dark-700/50 rounded-2xl p-8 backdrop-blur-xl min-h-[320px] flex flex-col justify-center"
+                        className="bg-dark-900/60 border border-dark-700/50 rounded-2xl p-8 backdrop-blur-xl min-h-[380px] flex flex-col justify-center"
                     >
+                        {/* Error / Success Messages */}
+                        <AnimatePresence>
+                            {error && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: -10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0 }}
+                                    className="mb-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-center gap-2"
+                                >
+                                    <AlertCircle className="w-4 h-4 text-rose-400 flex-shrink-0" />
+                                    <p className="text-sm text-rose-300">{error}</p>
+                                </motion.div>
+                            )}
+                            {success && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: -10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0 }}
+                                    className="mb-4 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center gap-2"
+                                >
+                                    <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                                    <p className="text-sm text-emerald-300">{success}</p>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+
                         <AnimatePresence mode="wait">
                             {selectedMethod ? (
                                 <motion.div key={selectedMethod}>
                                     <button
-                                        onClick={() => setSelectedMethod(null)}
+                                        onClick={() => { setSelectedMethod(null); resetForm() }}
                                         className="flex items-center gap-1 text-sm text-dark-400 hover:text-white mb-4 transition-colors"
                                     >
                                         <ChevronLeft className="w-4 h-4" /> Back
@@ -217,12 +376,7 @@ export default function Login() {
                                     {renderForm()}
                                 </motion.div>
                             ) : (
-                                <motion.div
-                                    key="empty"
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    className="text-center py-8"
-                                >
+                                <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-8">
                                     <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-dark-800 border border-dark-700 flex items-center justify-center">
                                         <ArrowRight className="w-6 h-6 text-dark-500" />
                                     </div>

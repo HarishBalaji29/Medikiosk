@@ -1,31 +1,44 @@
 import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useAuth } from '../../hooks/useAuth'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import Modal from '../../components/ui/Modal'
 import AnimatedPage from '../../components/shared/AnimatedPage'
+import api from '../../services/api'
 import {
     Camera, Upload as UploadIcon, Image, Brain,
-    AlertCircle, X, FileImage, Lightbulb, Check
+    AlertCircle, X, FileImage, Lightbulb, Check, Loader2
 } from 'lucide-react'
 
 export default function Upload() {
     const navigate = useNavigate()
+    const { user } = useAuth()
     const fileRef = useRef(null)
     const [preview, setPreview] = useState(null)
+    const [file, setFile] = useState(null)
     const [dragOver, setDragOver] = useState(false)
     const [error, setError] = useState(false)
+    const [errorMsg, setErrorMsg] = useState('')
+    const [processing, setProcessing] = useState(false)
 
-    const handleFile = (file) => {
-        if (!file) return
-        if (!file.type.startsWith('image/')) {
+    const handleFile = (f) => {
+        if (!f) return
+        if (!f.type.startsWith('image/')) {
+            setErrorMsg('Please upload an image file (JPG, PNG, WEBP)')
             setError(true)
             return
         }
+        if (f.size > 10 * 1024 * 1024) {
+            setErrorMsg('Image too large. Maximum size is 10MB.')
+            setError(true)
+            return
+        }
+        setFile(f)
         const reader = new FileReader()
         reader.onload = (e) => setPreview(e.target.result)
-        reader.readAsDataURL(file)
+        reader.readAsDataURL(f)
     }
 
     const handleDrop = (e) => {
@@ -34,8 +47,42 @@ export default function Upload() {
         handleFile(e.dataTransfer.files[0])
     }
 
-    const handleProcess = () => {
-        navigate('/patient/processing')
+    const handleProcess = async () => {
+        if (!file && !preview) return
+        setProcessing(true)
+
+        try {
+            const formData = new FormData()
+
+            if (file) {
+                formData.append('file', file)
+            } else {
+                // Convert base64 preview to blob
+                const response = await fetch(preview)
+                const blob = await response.blob()
+                formData.append('file', blob, 'prescription.jpg')
+            }
+
+            const result = await api.post('/patient/prescriptions/scan', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                    'X-User-Id': user?.id ? String(user.id) : '',
+                },
+                timeout: 120000, // 2 min timeout for OCR processing
+            })
+
+            // Store OCR result for Processing and Summary pages
+            localStorage.setItem('medikiosk_ocr_result', JSON.stringify(result.data))
+            localStorage.setItem('medikiosk_prescription_image', preview)
+
+            navigate('/patient/processing')
+        } catch (err) {
+            console.error('OCR Error:', err)
+            const detail = err.response?.data?.detail || 'Failed to process image. Please try again.'
+            setErrorMsg(detail)
+            setError(true)
+            setProcessing(false)
+        }
     }
 
     const tips = [
@@ -77,20 +124,42 @@ export default function Upload() {
                                 >
                                     <div className="relative inline-block mb-4">
                                         <img src={preview} alt="Prescription" className="max-h-[280px] rounded-xl border border-dark-700 shadow-xl" />
-                                        <button
-                                            onClick={() => setPreview(null)}
-                                            className="absolute -top-2 -right-2 w-8 h-8 bg-dark-800 border border-dark-600 rounded-full flex items-center justify-center hover:bg-rose-500/20 hover:text-rose-400 transition-colors"
-                                        >
-                                            <X className="w-4 h-4" />
-                                        </button>
+                                        {!processing && (
+                                            <button
+                                                onClick={() => { setPreview(null); setFile(null) }}
+                                                className="absolute -top-2 -right-2 w-8 h-8 bg-dark-800 border border-dark-600 rounded-full flex items-center justify-center hover:bg-rose-500/20 hover:text-rose-400 transition-colors"
+                                            >
+                                                <X className="w-4 h-4" />
+                                            </button>
+                                        )}
                                     </div>
-                                    <div className="flex items-center justify-center gap-2 mb-4">
-                                        <Check className="w-4 h-4 text-emerald-400" />
-                                        <p className="text-sm text-emerald-400">Image ready for processing</p>
-                                    </div>
-                                    <Button onClick={handleProcess} icon={Brain} size="lg">
-                                        Process with AI
-                                    </Button>
+
+                                    {processing ? (
+                                        <div className="flex flex-col items-center gap-3">
+                                            <div className="flex items-center gap-2 text-primary-400">
+                                                <Loader2 className="w-5 h-5 animate-spin" />
+                                                <p className="text-sm font-medium">Processing with AI... This may take a moment</p>
+                                            </div>
+                                            <div className="w-48 h-1.5 bg-dark-800 rounded-full overflow-hidden">
+                                                <motion.div
+                                                    className="h-full bg-gradient-to-r from-primary-500 to-primary-400 rounded-full"
+                                                    initial={{ width: '5%' }}
+                                                    animate={{ width: '90%' }}
+                                                    transition={{ duration: 30, ease: 'linear' }}
+                                                />
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div className="flex items-center justify-center gap-2 mb-4">
+                                                <Check className="w-4 h-4 text-emerald-400" />
+                                                <p className="text-sm text-emerald-400">Image ready for processing</p>
+                                            </div>
+                                            <Button onClick={handleProcess} icon={Brain} size="lg">
+                                                Process with AI
+                                            </Button>
+                                        </>
+                                    )}
                                 </motion.div>
                             ) : (
                                 <motion.div
@@ -168,7 +237,7 @@ export default function Upload() {
                         <AlertCircle className="w-8 h-8 text-rose-400" />
                     </div>
                     <h3 className="text-lg font-semibold text-white mb-2">Unable to process image</h3>
-                    <p className="text-sm text-dark-400 mb-6">The uploaded image is unclear or in an unsupported format. Please try again with a clearer image.</p>
+                    <p className="text-sm text-dark-400 mb-6">{errorMsg || 'The uploaded image is unclear or in an unsupported format. Please try again with a clearer image.'}</p>
                     <Button onClick={() => setError(false)} variant="secondary" className="w-full">
                         Try Again
                     </Button>

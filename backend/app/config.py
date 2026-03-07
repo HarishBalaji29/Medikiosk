@@ -14,6 +14,15 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     FRONTEND_URL: str = "http://localhost:5173"
 
+    # Twilio (optional — leave empty for simulated OTP)
+    TWILIO_ACCOUNT_SID: str = ""
+    TWILIO_AUTH_TOKEN: str = ""
+    TWILIO_PHONE_NUMBER: str = ""
+
+    # Supabase Storage (for prescription image uploads)
+    SUPABASE_URL: str = ""
+    SUPABASE_SERVICE_KEY: str = ""
+
     class Config:
         env_file = ".env"
 

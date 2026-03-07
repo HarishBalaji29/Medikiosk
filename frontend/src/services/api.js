@@ -19,8 +19,13 @@ api.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response?.status === 401) {
-            localStorage.removeItem('medikiosk_token')
-            window.location.href = '/login'
+            // Don't redirect on auth endpoints — let the login form handle errors
+            const url = error.config?.url || ''
+            const isAuthEndpoint = url.includes('/auth/')
+            if (!isAuthEndpoint) {
+                localStorage.removeItem('medikiosk_token')
+                window.location.href = '/login'
+            }
         }
         return Promise.reject(error)
     }

@@ -25,6 +25,7 @@ class OTPRequest(BaseModel):
 class OTPVerify(BaseModel):
     phone: str
     otp: str
+    role: str = "patient"
 
 
 class Token(BaseModel):
