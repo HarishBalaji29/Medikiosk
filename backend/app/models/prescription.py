@@ -10,6 +10,7 @@ class Prescription(Base):
     doctor_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     image_url = Column(String(500), nullable=True)
     extracted_text = Column(Text, nullable=True)
+    structured_text = Column(Text, nullable=True)  # Groq-cleaned structured JSON
     medicines = Column(JSON, nullable=True)
     status = Column(String(20), default="pending")  # pending, approved, rejected, dispensed
     confidence_score = Column(Float, nullable=True)

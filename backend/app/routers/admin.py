@@ -8,6 +8,7 @@ from app.models.machine import Machine
 from app.schemas.schemas import (
     MedicineCreate, MedicineUpdate, MedicineResponse,
     MachineCreate, MachineResponse, UserResponse, AdminStats,
+    AdminUserResponse
 )
 from app.middleware.auth import require_role
 
@@ -69,13 +70,40 @@ def delete_medicine(
 
 
 # ─── Machines ───
-@router.get("/machines/status", response_model=List[MachineResponse])
+@router.get("/machines/status")
 def get_machines(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role("admin")),
 ):
     machines = db.query(Machine).all()
-    return [MachineResponse.model_validate(m) for m in machines]
+    output = []
+    from datetime import datetime, timezone
+    
+    for m in machines:
+        errors = len([e for e in m.error_log.split(',') if e.strip()]) if m.error_log else 0
+        
+        # Calculate human readable ping using last_ping
+        ping_str = "Just now"
+        if m.last_ping:
+            diff = datetime.now() - m.last_ping
+            if diff.total_seconds() < 60:
+                ping_str = "Just now"
+            elif diff.total_seconds() < 3600:
+                ping_str = f"{int(diff.total_seconds() // 60)} mins ago"
+            else:
+                ping_str = f"{int(diff.total_seconds() // 3600)} hours ago"
+        
+        output.append({
+            "id": m.machine_id,
+            "name": m.name,
+            "location": m.location or "Unknown",
+            "status": m.status,
+            "stockPct": 85, # Default hardware stock simulation
+            "lastPing": ping_str,
+            "errors": errors,
+            "itemsDispensed": m.dispensed_today
+        })
+    return output
 
 
 @router.post("/machines", response_model=MachineResponse)
@@ -92,13 +120,34 @@ def add_machine(
 
 
 # ─── Users ───
-@router.get("/users", response_model=List[UserResponse])
+@router.get("/users", response_model=List[AdminUserResponse])
 def get_users(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role("admin")),
 ):
     users = db.query(User).all()
-    return [UserResponse.model_validate(u) for u in users]
+    from app.models.prescription import Prescription
+
+    output = []
+    for u in users:
+        data = UserResponse.model_validate(u).model_dump()
+
+        data["status"] = "active" if getattr(u, "is_active", True) else "offline"
+        data["joined"] = u.created_at.strftime("%b %d, %Y") if getattr(u, "created_at", None) else "Jan 01, 2026"
+
+        # Activity summary
+        if u.role == "patient":
+            cnt = db.query(Prescription).filter(Prescription.patient_id == u.id).count()
+            data["activity"] = f"{cnt} prescriptions uploaded"
+        elif u.role == "doctor":
+            cnt = db.query(Prescription).filter(Prescription.doctor_id == u.id).count()
+            data["activity"] = f"{cnt} prescriptions handled"
+        else:
+            data["activity"] = "System Administrator"
+
+        output.append(data)
+
+    return output
 
 
 # ─── Stats ───

@@ -1,0 +1,11 @@
+﻿python : INFO:     Started server process [29324]
+At line:1 char:1
++ python -m uvicorn app.main:app *>&1 | Out-File -FilePath error_log.tx ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (INFO:     Started server process [2 
+   9324]:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)

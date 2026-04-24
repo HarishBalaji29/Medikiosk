@@ -1,6 +1,6 @@
 from pydantic import BaseModel, EmailStr
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, date
 
 
 # ─── Auth Schemas ───
@@ -25,6 +25,7 @@ class OTPRequest(BaseModel):
 class OTPVerify(BaseModel):
     phone: str
     otp: str
+    name: Optional[str] = None
     role: str = "patient"
 
 
@@ -46,6 +47,11 @@ class UserResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class AdminUserResponse(UserResponse):
+    joined: Optional[str] = None
+    activity: Optional[str] = None
+    status: Optional[str] = "active"
+
 
 # ─── Prescription Schemas ───
 class PrescriptionCreate(BaseModel):
@@ -65,6 +71,7 @@ class PrescriptionResponse(BaseModel):
     id: int
     patient_id: int
     doctor_id: Optional[int] = None
+    doctor_name: Optional[str] = None
     image_url: Optional[str] = None
     extracted_text: Optional[str] = None
     medicines: Optional[list] = None
@@ -86,7 +93,7 @@ class MedicineCreate(BaseModel):
     min_threshold: int = 10
     unit_price: float = 0.0
     manufacturer: Optional[str] = None
-    expiry_date: Optional[str] = None
+    expiry_date: Optional[date] = None
 
 
 class MedicineUpdate(BaseModel):
@@ -94,7 +101,7 @@ class MedicineUpdate(BaseModel):
     stock_quantity: Optional[int] = None
     unit_price: Optional[float] = None
     min_threshold: Optional[int] = None
-    expiry_date: Optional[str] = None
+    expiry_date: Optional[date] = None
     is_available: Optional[bool] = None
 
 
@@ -107,8 +114,8 @@ class MedicineResponse(BaseModel):
     min_threshold: int
     unit_price: float
     manufacturer: Optional[str] = None
-    expiry_date: Optional[str] = None
-    is_available: bool
+    expiry_date: Optional[date] = None
+    is_available: bool = True
 
     class Config:
         from_attributes = True

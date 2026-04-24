@@ -95,9 +95,10 @@ def verify_otp_endpoint(request: OTPVerify, db: Session = Depends(get_db)):
 
     user = db.query(User).filter(User.phone == phone).first()
     if not user:
-        # Auto-create user with the given role
+        # Auto-create user with the given name or fallback
+        patient_name = request.name.strip() if request.name and request.name.strip() else f"Patient {phone[-4:]}"
         user = User(
-            name=f"Patient {phone[-4:]}",
+            name=patient_name,
             email=f"{phone.replace('+', '')}@otp.medikiosk.com",
             phone=phone,
             hashed_password=hash_password("otp-user"),
@@ -107,6 +108,12 @@ def verify_otp_endpoint(request: OTPVerify, db: Session = Depends(get_db)):
         db.commit()
         db.refresh(user)
         print(f"[Auth] New user created via OTP: {user.name} ({user.role}) - {phone}")
+    elif request.name and request.name.strip() and user.name.startswith("Patient "):
+        # Update name if user still has the auto-generated name
+        user.name = request.name.strip()
+        db.commit()
+        db.refresh(user)
+        print(f"[Auth] Updated user name to: {user.name}")
 
     token = create_access_token({"sub": str(user.id), "role": user.role})
     return Token(access_token=token, user=UserResponse.model_validate(user))
