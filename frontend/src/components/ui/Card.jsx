@@ -1,11 +1,11 @@
 import { motion } from 'framer-motion'
 
 const cardVariants = {
-    default: 'bg-dark-900/60 border-dark-700/50',
-    glass: 'bg-dark-900/40 border-dark-700/30 backdrop-blur-xl',
-    gradient: 'border-dark-700/50',
-    accent: 'bg-dark-900/60 border-primary-500/30',
-    emerald: 'bg-dark-900/60 border-emerald-500/30',
+    default: 'bg-white/80 dark:bg-dark-900/60 border-slate-200 dark:border-dark-700/50',
+    glass: 'bg-white/60 dark:bg-dark-900/40 border-slate-200 dark:border-dark-700/30 backdrop-blur-xl',
+    gradient: 'border-slate-200 dark:border-dark-700/50',
+    accent: 'bg-white/80 dark:bg-dark-900/60 border-primary-500/30',
+    emerald: 'bg-white/80 dark:bg-dark-900/60 border-emerald-500/30',
 }
 
 export default function Card({

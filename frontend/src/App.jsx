@@ -1,5 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
+import { ThemeProvider } from './context/ThemeContext'
+import { ToastProvider } from './context/ToastContext'
 import ProtectedRoute from './components/shared/ProtectedRoute'
 import DashboardLayout from './components/layout/DashboardLayout'
 
@@ -14,9 +16,13 @@ import Processing from './pages/patient/Processing'
 import Summary from './pages/patient/Summary'
 import Dispensing from './pages/patient/Dispensing'
 import Success from './pages/patient/Success'
+import PatientHistory from './pages/patient/History'
+import PatientProfile from './pages/patient/Profile'
 
 // Doctor Pages
 import DoctorDashboard from './pages/doctor/Dashboard'
+import DoctorPrescriptions from './pages/doctor/Prescriptions'
+import DoctorPatientLogs from './pages/doctor/PatientLogs'
 
 // Admin Pages
 import AdminDashboard from './pages/admin/Dashboard'
@@ -26,8 +32,10 @@ import Users from './pages/admin/Users'
 
 export default function App() {
     return (
-        <AuthProvider>
-            <BrowserRouter>
+        <ThemeProvider>
+            <ToastProvider>
+                <AuthProvider>
+                    <BrowserRouter>
                 <Routes>
                     {/* Public Routes */}
                     <Route path="/" element={<Landing />} />
@@ -48,8 +56,8 @@ export default function App() {
                         <Route path="summary" element={<Summary />} />
                         <Route path="dispensing" element={<Dispensing />} />
                         <Route path="success" element={<Success />} />
-                        <Route path="history" element={<PatientDashboard />} />
-                        <Route path="profile" element={<PatientDashboard />} />
+                        <Route path="history" element={<PatientHistory />} />
+                        <Route path="profile" element={<PatientProfile />} />
                         <Route index element={<Navigate to="dashboard" replace />} />
                     </Route>
 
@@ -63,8 +71,8 @@ export default function App() {
                         }
                     >
                         <Route path="dashboard" element={<DoctorDashboard />} />
-                        <Route path="prescriptions" element={<DoctorDashboard />} />
-                        <Route path="patients" element={<DoctorDashboard />} />
+                        <Route path="prescriptions" element={<DoctorPrescriptions />} />
+                        <Route path="patients" element={<DoctorPatientLogs />} />
                         <Route index element={<Navigate to="dashboard" replace />} />
                     </Route>
 
@@ -87,7 +95,9 @@ export default function App() {
                     {/* Catch all */}
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
-            </BrowserRouter>
-        </AuthProvider>
+                </BrowserRouter>
+            </AuthProvider>
+            </ToastProvider>
+        </ThemeProvider>
     )
 }

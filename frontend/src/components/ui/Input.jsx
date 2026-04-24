@@ -4,19 +4,23 @@ const Input = forwardRef(({ label, error, icon: Icon, className = '', ...props }
     return (
         <div className="space-y-1.5">
             {label && (
-                <label className="block text-sm font-medium text-dark-300">
+                <label className="block text-sm font-medium text-slate-600 dark:text-dark-300">
                     {label}
                 </label>
             )}
             <div className="relative">
                 {Icon && (
-                    <Icon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-dark-500" />
+                    <Icon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-dark-500" />
                 )}
                 <input
                     ref={ref}
                     className={`
-            w-full bg-dark-900/60 border border-dark-700 rounded-xl
-            px-4 py-3 text-sm text-white placeholder-dark-500
+            w-full
+            bg-slate-100 dark:bg-dark-900/60
+            border border-slate-200 dark:border-dark-700
+            rounded-xl px-4 py-3 text-sm
+            text-slate-900 dark:text-white
+            placeholder-slate-400 dark:placeholder-dark-500
             focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500/50
             transition-all duration-200
             ${Icon ? 'pl-10' : ''}

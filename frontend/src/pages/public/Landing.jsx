@@ -1,142 +1,197 @@
-import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Pill, Zap, Shield, Brain, ArrowRight } from 'lucide-react'
 
 export default function Landing() {
     const navigate = useNavigate()
-    const [progress, setProgress] = useState(0)
 
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setProgress(prev => {
-                if (prev >= 100) {
-                    clearInterval(interval)
-                    setTimeout(() => navigate('/login'), 300)
-                    return 100
-                }
-                return prev + 4
-            })
-        }, 100)
-        return () => clearInterval(interval)
-    }, [navigate])
-
-    const features = [
-        { icon: Brain, label: 'AI Scanning', color: 'from-primary-500 to-blue-600' },
-        { icon: Zap, label: 'Instant Dispense', color: 'from-amber-500 to-orange-600' },
-        { icon: Shield, label: 'Doctor Verified', color: 'from-emerald-500 to-green-600' },
-        { icon: Pill, label: 'Smart Inventory', color: 'from-purple-500 to-violet-600' },
-    ]
+    const handleClick = () => {
+        navigate('/login')
+    }
 
     return (
-        <div className="min-h-screen bg-dark-950 flex flex-col items-center justify-center relative overflow-hidden">
-            {/* Dot Pattern Background */}
-            <div className="absolute inset-0 dot-pattern opacity-30" />
+        <div
+            onClick={handleClick}
+            style={{
+                position: 'fixed',
+                inset: 0,
+                width: '100vw',
+                height: '100vh',
+                cursor: 'pointer',
+                overflow: 'hidden',
+                background: '#000',
+            }}
+        >
+            {/* Full-screen login image */}
+            <img
+                src="/login-bg.png"
+                alt="MediKiosk Login"
+                style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    display: 'block',
+                    userSelect: 'none',
+                    pointerEvents: 'none',
+                    opacity: 1,
+                }}
+                draggable={false}
+            />
 
-            {/* Glowing Orbs */}
-            <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary-500/10 rounded-full blur-3xl animate-float" />
-            <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl animate-float" style={{ animationDelay: '1.5s' }} />
-
-            {/* Logo Section */}
+            {/* Left-side brand overlay */}
             <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.6, ease: 'easeOut' }}
-                className="relative z-10 text-center"
+                initial={{ opacity: 0, x: -40 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 1, ease: 'easeOut' }}
+                style={{
+                    position: 'absolute',
+                    top: '30%',
+                    left: '8%',
+                    transform: 'translateY(-50%)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'flex-start',
+                    gap: '14px',
+                    pointerEvents: 'none',
+                }}
             >
-                {/* Icon */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    {/* Logo (Cropped to circle, centered over text) */}
+                    <motion.img
+                        src="/medikiosk-logo.png"
+                        alt="MediKiosk Logo"
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.9, delay: 0.1 }}
+                        style={{
+                            width: 'clamp(90px, 11vw, 150px)',
+                            height: 'clamp(90px, 11vw, 150px)',
+                            objectFit: 'cover',
+                            borderRadius: '50%',
+                            mixBlendMode: 'lighten',
+                            filter: 'drop-shadow(0 0 18px rgba(56,200,255,0.7))',
+                            userSelect: 'none',
+                            pointerEvents: 'none',
+                            marginBottom: '6px',
+                        }}
+                        draggable={false}
+                    />
+
+                    {/* Brand name */}
+                    <motion.h1
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.9, delay: 0.2 }}
+                        style={{
+                            margin: 0,
+                            fontSize: 'clamp(2.8rem, 5vw, 4.5rem)',
+                            fontFamily: '"Inter", system-ui, sans-serif',
+                            fontWeight: 800,
+                            letterSpacing: '0.12em',
+                            textTransform: 'uppercase',
+                            color: '#ffffff',
+                            textShadow: '0 0 30px rgba(56,200,255,0.5), 0 4px 20px rgba(0,0,0,0.8)',
+                            lineHeight: 1,
+                        }}
+                    >
+                        Medi<span style={{ color: '#38c8ff' }}>Kiosk</span>
+                    </motion.h1>
+                </div>
+
+                {/* Divider line */}
                 <motion.div
-                    animate={{ boxShadow: ['0 0 20px rgba(59,130,246,0.3)', '0 0 60px rgba(59,130,246,0.5)', '0 0 20px rgba(59,130,246,0.3)'] }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                    className="w-24 h-24 mx-auto mb-8 rounded-3xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center"
-                >
-                    <Pill className="w-12 h-12 text-white" />
-                </motion.div>
+                    initial={{ scaleX: 0 }}
+                    animate={{ scaleX: 1 }}
+                    transition={{ duration: 0.8, delay: 0.5 }}
+                    style={{
+                        width: '100%',
+                        height: '2px',
+                        background: 'linear-gradient(90deg, #38c8ff, transparent)',
+                        transformOrigin: 'left',
+                        borderRadius: '1px',
+                    }}
+                />
 
-                {/* Title */}
-                <motion.h1
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 }}
-                    className="text-5xl md:text-7xl font-black tracking-tight mb-4"
-                >
-                    <span className="text-gradient">MEDI</span>
-                    <span className="text-white">KIOSK</span>
-                </motion.h1>
-
-                {/* Tagline */}
+                {/* Catchy tagline */}
                 <motion.p
-                    initial={{ opacity: 0, y: 20 }}
+                    initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.4 }}
-                    className="text-lg md:text-xl text-dark-400 font-medium mb-12"
+                    transition={{ duration: 0.9, delay: 0.7 }}
+                    style={{
+                        margin: 0,
+                        fontSize: 'clamp(0.95rem, 1.5vw, 1.2rem)',
+                        fontFamily: '"Inter", system-ui, sans-serif',
+                        fontWeight: 500,
+                        fontStyle: 'italic',
+                        color: 'rgba(56, 200, 255, 0.9)',
+                        textShadow: '0 0 16px rgba(56,200,255,0.4), 0 2px 10px rgba(0,0,0,0.9)',
+                        letterSpacing: '0.04em',
+                        lineHeight: 1.5,
+                        maxWidth: '380px',
+                    }}
                 >
-                    AI-Powered Smart Medicine Dispensing
+                    "Your Health, Our Priority —<br />Smarter Care at Every Step"
                 </motion.p>
-
-                {/* Feature Pills */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.6 }}
-                    className="flex flex-wrap justify-center gap-3 mb-12"
-                >
-                    {features.map((feat, i) => (
-                        <motion.div
-                            key={feat.label}
-                            initial={{ opacity: 0, scale: 0.8 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: 0.7 + i * 0.1 }}
-                            className="flex items-center gap-2 px-4 py-2 rounded-full bg-dark-900/60 border border-dark-700/50 backdrop-blur-sm"
-                        >
-                            <div className={`w-6 h-6 rounded-full bg-gradient-to-br ${feat.color} flex items-center justify-center`}>
-                                <feat.icon className="w-3 h-3 text-white" />
-                            </div>
-                            <span className="text-sm text-dark-300">{feat.label}</span>
-                        </motion.div>
-                    ))}
-                </motion.div>
-
-                {/* Progress Bar */}
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 1 }}
-                    className="w-48 mx-auto"
-                >
-                    <div className="h-1 bg-dark-800 rounded-full overflow-hidden mb-3">
-                        <motion.div
-                            className="h-full bg-gradient-to-r from-primary-500 to-primary-400 rounded-full"
-                            style={{ width: `${progress}%` }}
-                            transition={{ duration: 0.1 }}
-                        />
-                    </div>
-                    <p className="text-xs text-dark-500">Loading system...</p>
-                </motion.div>
             </motion.div>
 
-            {/* Floating Icons */}
-            {[Pill, Shield, Zap, Brain].map((Icon, i) => (
-                <motion.div
-                    key={i}
-                    className="absolute text-dark-700/30"
+            {/* Bottom "tap anywhere" hint */}
+            <div
+                style={{
+                    position: 'absolute',
+                    bottom: '2.5rem',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '8px',
+                    animation: 'fadeInUp 1.2s ease both',
+                    pointerEvents: 'none',
+                }}
+            >
+                <span
                     style={{
-                        top: `${20 + i * 20}%`,
-                        left: i % 2 === 0 ? '10%' : '85%',
-                    }}
-                    animate={{
-                        y: [0, -20, 0],
-                        rotate: [0, 10, -10, 0],
-                    }}
-                    transition={{
-                        duration: 4 + i,
-                        repeat: Infinity,
-                        delay: i * 0.5,
+                        color: 'rgba(255,255,255,0.80)',
+                        fontSize: '1rem',
+                        fontFamily: 'Inter, system-ui, sans-serif',
+                        letterSpacing: '0.08em',
+                        textTransform: 'uppercase',
+                        fontWeight: 600,
+                        textShadow: '0 2px 12px rgba(0,0,0,0.7)',
+                        animation: 'pulse 2s ease-in-out infinite',
                     }}
                 >
-                    <Icon className="w-8 h-8" />
-                </motion.div>
-            ))}
+                    Tap anywhere to continue
+                </span>
+                {/* animated chevron */}
+                <svg
+                    width="28"
+                    height="28"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="rgba(255,255,255,0.70)"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    style={{ animation: 'bounce 1.5s ease-in-out infinite' }}
+                >
+                    <polyline points="6 9 12 15 18 9" />
+                </svg>
+            </div>
+
+            <style>{`
+                @keyframes fadeInUp {
+                    from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+                    to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+                }
+                @keyframes pulse {
+                    0%, 100% { opacity: 0.8; }
+                    50%       { opacity: 1; }
+                }
+                @keyframes bounce {
+                    0%, 100% { transform: translateY(0); }
+                    50%      { transform: translateY(6px); }
+                }
+            `}</style>
         </div>
     )
 }

@@ -57,8 +57,8 @@ export function AuthProvider({ children }) {
     }, [])
 
     /** Verify OTP and login */
-    const verifyOtp = useCallback(async (phone, otp) => {
-        const res = await api.post('/auth/verify-otp', { phone, otp })
+    const verifyOtp = useCallback(async (phone, otp, name, role) => {
+        const res = await api.post('/auth/verify-otp', { phone, otp, name, role })
         const { access_token, user: userData } = res.data
         localStorage.setItem('medikiosk_token', access_token)
         api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`
